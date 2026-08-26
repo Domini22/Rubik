@@ -2,25 +2,11 @@ from ursina import *
 
 app = Ursina()
 
-a = EditorCamera()
-a.move_speed = 0
+ec = EditorCamera()
+ec.move_speed = 0
 
-Colors = {
-    'white': color.white,
-    'yellow': color.yellow,
-    'green': color.green,
-    'blue': color.blue,
-    'red': color.red,
-    'orange': color.orange
 
-}
-y_layers=[]
-neg_y_layers=[]
-x_layers=[]
-neg_x_layers=[]
-z_layers=[]
-neg_z_layers=[]
-all_tiles=[]
+layers={'y': [], '-y':[], 'x': [], '-x': [], 'z': [], '-z': []}
 pivot = Entity()
 cubies = []
 for x in -1,0,1:
@@ -35,44 +21,44 @@ for x in -1,0,1:
             cubies.append(cubie)
 
             # if y == 1:
-            #     Entity(parent=cubie, model='quad', color=Colors['white'], position=(0, 0.501, 0), rotation_x=90, scale=0.88)
+            #     Entity(parent=cubie, model='quad', color=color.white, position=(0, 0.501, 0), rotation_x=90, scale=0.88)
             # if y == -1:
-            #     Entity(parent=cubie, model='quad', color=Colors['yellow'], position=(0, -0.501, 0), rotation_x=270, scale=0.88)
+            #     Entity(parent=cubie, model='quad', color=color.yellow, position=(0, -0.501, 0), rotation_x=270, scale=0.88)
             # if x == 1:
-            #     Entity(parent=cubie, model='quad', color=Colors['red'], position=(0.501, 0, 0), rotation_y=270, scale=0.88)
+            #     Entity(parent=cubie, model='quad', color=color.red, position=(0.501, 0, 0), rotation_y=270, scale=0.88)
             # if x == -1:
-            #     Entity(parent=cubie, model='quad', color=Colors['orange'], position=(-0.501, 0, 0), rotation_y=90, scale=0.88)
+            #     Entity(parent=cubie, model='quad', color=color.orange, position=(-0.501, 0, 0), rotation_y=90, scale=0.88)
             # if z == 1:
-            #     Entity(parent=cubie, model='quad', color=Colors['blue'], position=(0, 0, 0.501), rotation_y=180, scale=0.88)
+            #     Entity(parent=cubie, model='quad', color=color.blue, position=(0, 0, 0.501), rotation_y=180, scale=0.88)
             # if z == -1:
-            #     Entity(parent=cubie, model='quad', color=Colors['green'], position=(0, 0, -0.501), rotation_y=0, scale=0.88)
+            #     Entity(parent=cubie, model='quad', color=color.green, position=(0, 0, -0.501), rotation_y=0, scale=0.88)
 
             if y == 1:
-                c = Entity(parent=cubie, model='quad', color=Colors['white'], position=(0, 0.501, 0), rotation_x=90, scale=0.88)
-                y_layers.append(c)
+                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, 0.501, 0), rotation_x=90, scale=0.88)
+                layers['y'].append(c)
             if y == -1:
-                c = Entity(parent=cubie, model='quad', color=Colors['white'], position=(0, -0.501, 0), rotation_x=270, scale=0.88)
-                neg_y_layers.append(c)
+                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, -0.501, 0), rotation_x=270, scale=0.88)
+                layers['-y'].append(c)
             if x == 1:
-                c = Entity(parent=cubie, model='quad', color=Colors['white'], position=(0.501, 0, 0), rotation_y=270, scale=0.88)
-                x_layers.append(c)
+                c = Entity(parent=cubie, model='quad', color=color.white, position=(0.501, 0, 0), rotation_y=270, scale=0.88)
+                layers['x'].append(c)
             if x == -1:
-                c = Entity(parent=cubie, model='quad', color=Colors['white'], position=(-0.501, 0, 0), rotation_y=90, scale=0.88)
-                neg_x_layers.append(c)
+                c = Entity(parent=cubie, model='quad', color=color.white, position=(-0.501, 0, 0), rotation_y=90, scale=0.88)
+                layers['-x'].append(c)
             if z == 1:
-                c = Entity(parent=cubie, model='quad', color=Colors['white'], position=(0, 0, 0.501), rotation_y=180, scale=0.88)
-                z_layers.append(c)
+                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, 0, 0.501), rotation_y=180, scale=0.88)
+                layers['z'].append(c)
             if z == -1:
-                c = Entity(parent=cubie, model='quad', color=Colors['white'], position=(0, 0, -0.501), rotation_y=0, scale=0.88)
-                neg_z_layers.append(c)
-
+                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, 0, -0.501), rotation_y=0, scale=0.88)
+                layers['-z'].append(c)
 
 STATE = 'INPUT_COLORS'
-if STATE == 'INPUT_COLORS':
-    for layer in (neg_z_layers, x_layers, reversed(z_layers), reversed(neg_x_layers), y_layers, neg_y_layers):
-        all_tiles.extend(layer)
-    tiles_index = 1
-    all_tiles[0].color = color.cyan
+face_order = ['-z', '-x', 'z', 'x', 'y', '-y']
+all_tiles = []
+for face in face_order:
+    all_tiles.extend(layers[face])
+all_tiles[0].color = color.cyan
+tiles_index = 1
 
 
 is_rotating = False
@@ -113,6 +99,13 @@ def input(key):
 
     def next():
         global STATE, tiles_index
+        if tiles_index%9==0:
+            match tiles_index//9:
+                case 1: ec.animate_rotation((0, 90, 0), duration=1, curve=curve.out_quad)
+                case 2: ec.animate_rotation((0, 180, 0), duration=1, curve=curve.out_quad)
+                case 3: ec.animate_rotation((0, 270, 0), duration=1, curve=curve.out_quad)
+                case 4: ec.animate_rotation((90, 270, 0), duration=1, curve=curve.out_quad)
+                case 5: ec.animate_rotation((-90, 270, 0), duration=1, curve=curve.out_quad)
         if tiles_index < len(all_tiles):
             all_tiles[tiles_index].color = color.cyan
             tiles_index += 1
@@ -134,8 +127,7 @@ def input(key):
 
 
     elif STATE == 'INPUT_COLORS':
-        if key in ('w','y','b','g','r','o'):
-
+        if key in counts:
             if key == 'w' and counts['w'] < 9:
                 all_tiles[tiles_index-1].color = color.white
                 counts['w']+=1
@@ -170,7 +162,7 @@ def input(key):
                     case color.blue: counts['b'] -= 1
                     case color.green: counts['g'] -= 1
                     case color.red: counts['r'] -= 1
-                    case color.orange:counts['o'] -= 1
+                    case color.orange: counts['o'] -= 1
                 all_tiles[tiles_index].color = color.white
                 all_tiles[tiles_index-1].color = color.cyan
 
