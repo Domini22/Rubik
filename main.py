@@ -1,4 +1,7 @@
 from ursina import *
+from dicts import COLOR_TO_CHAR, CHAR_TO_COLOR, cube_state, EDGES, layers, face_order, counts, info_text, MOVE_AXIS_LAYER, CAMERA_ROTATIONS, STICKER_CONFIG, STICKER_CONFIG_2
+from enums import AppState
+from solver import find_white_edges
 
 app = Ursina()
 
@@ -6,7 +9,6 @@ ec = EditorCamera()
 ec.move_speed = 0
 
 
-layers={'y': [], '-y':[], 'x': [], '-x': [], 'z': [], '-z': []}
 pivot = Entity()
 cubies = []
 for x in -1,0,1:
@@ -20,45 +22,27 @@ for x in -1,0,1:
             )
             cubies.append(cubie)
 
-            # if y == 1:
-            #     Entity(parent=cubie, model='quad', color=color.white, position=(0, 0.501, 0), rotation_x=90, scale=0.88)
-            # if y == -1:
-            #     Entity(parent=cubie, model='quad', color=color.yellow, position=(0, -0.501, 0), rotation_x=270, scale=0.88)
-            # if x == 1:
-            #     Entity(parent=cubie, model='quad', color=color.red, position=(0.501, 0, 0), rotation_y=270, scale=0.88)
-            # if x == -1:
-            #     Entity(parent=cubie, model='quad', color=color.orange, position=(-0.501, 0, 0), rotation_y=90, scale=0.88)
-            # if z == 1:
-            #     Entity(parent=cubie, model='quad', color=color.blue, position=(0, 0, 0.501), rotation_y=180, scale=0.88)
-            # if z == -1:
-            #     Entity(parent=cubie, model='quad', color=color.green, position=(0, 0, -0.501), rotation_y=0, scale=0.88)
+            for cond, face, pos, rot, col in STICKER_CONFIG: #STICKER_CONFIG_2
+                if cond(x,y,z):
+                    c = Entity(parent=cubie, model='quad', color=col, position=pos, rotation=rot, scale=0.88)
+                    layers[face].append(c)
 
-            if y == 1:
-                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, 0.501, 0), rotation_x=90, scale=0.88)
-                layers['y'].append(c)
-            if y == -1:
-                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, -0.501, 0), rotation_x=270, scale=0.88)
-                layers['-y'].append(c)
-            if x == 1:
-                c = Entity(parent=cubie, model='quad', color=color.white, position=(0.501, 0, 0), rotation_y=270, scale=0.88)
-                layers['x'].append(c)
-            if x == -1:
-                c = Entity(parent=cubie, model='quad', color=color.white, position=(-0.501, 0, 0), rotation_y=90, scale=0.88)
-                layers['-x'].append(c)
-            if z == 1:
-                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, 0, 0.501), rotation_y=180, scale=0.88)
-                layers['z'].append(c)
-            if z == -1:
-                c = Entity(parent=cubie, model='quad', color=color.white, position=(0, 0, -0.501), rotation_y=0, scale=0.88)
-                layers['-z'].append(c)
+layers['F'].sort(key=lambda t: (-t.parent.y, -t.parent.x))
+layers['B'].sort(key=lambda t: (-t.parent.y, t.parent.x))
 
-STATE = 'INPUT_COLORS'
-face_order = ['-z', '-x', 'z', 'x', 'y', '-y']
+layers['L'].sort(key=lambda t: (-t.parent.y, -t.parent.z))
+layers['R'].sort(key=lambda t: (-t.parent.y, t.parent.z))
+
+layers['U'].sort(key=lambda t: (-t.parent.z, -t.parent.x))
+layers['D'].sort(key=lambda t: (t.parent.z, -t.parent.x))
+
+STATE = AppState.INPUT_COLORS #ROTATE
 all_tiles = []
-for face in face_order:
-    all_tiles.extend(layers[face])
-all_tiles[0].color = color.cyan
 tiles_index = 1
+if STATE == AppState.INPUT_COLORS:
+    for face in face_order:
+        all_tiles.extend(layers[face])
+    all_tiles[0].color = color.cyan
 
 
 is_rotating = False
@@ -93,78 +77,61 @@ def finish_rotation():
     pivot.rotation = (0, 0, 0)
     is_rotating = False
 
-counts = {'w': 0, 'y': 0, 'g': 0, 'b': 0, 'r': 0, 'o': 0}
+def next_tile():
+    global STATE, tiles_index
+    if tiles_index % 9 == 0:
+        face_index = tiles_index // 9
+        if face_index in CAMERA_ROTATIONS:
+            ec.animate_rotation(CAMERA_ROTATIONS[face_index], duration=1, curve=curve.out_quad)
+
+    if tiles_index < len(all_tiles):
+        all_tiles[tiles_index].color = color.cyan
+        tiles_index += 1
+    else:
+        info_text.text = "Wypełniono wszystko!\n[R] - Układaj sam\n[G] - Pokaż instrukcje"
+        print(cube_state)
+        STATE = AppState.CHOOSE_MODE
+
 def input(key):
-    global tiles_index, counts, STATE
+    global tiles_index, STATE
 
-    def next():
-        global STATE, tiles_index
-        if tiles_index%9==0:
-            match tiles_index//9:
-                case 1: ec.animate_rotation((0, 90, 0), duration=1, curve=curve.out_quad)
-                case 2: ec.animate_rotation((0, 180, 0), duration=1, curve=curve.out_quad)
-                case 3: ec.animate_rotation((0, 270, 0), duration=1, curve=curve.out_quad)
-                case 4: ec.animate_rotation((90, 270, 0), duration=1, curve=curve.out_quad)
-                case 5: ec.animate_rotation((-90, 270, 0), duration=1, curve=curve.out_quad)
-        if tiles_index < len(all_tiles):
-            all_tiles[tiles_index].color = color.cyan
-            tiles_index += 1
-        else:
-            print("Wypełniono wszystko!")
-            STATE = 'ROTATE'
 
-    if STATE == 'ROTATE':
-        is_shift = held_keys['shift']
-        match key:
-            case 'r': rotate(0, 1, 90 if is_shift else -90)
-            case 'l': rotate(0, -1, 90 if is_shift else -90)
-            case 'u': rotate(1, 1, 90 if is_shift else -90)
-            case 'd': rotate(1, -1, 90 if is_shift else -90)
-            case 'f': rotate(2, 1, 90 if is_shift else -90)
-            case 'b': rotate(2, -1, 90 if is_shift else -90)
+    if STATE == AppState.CHOOSE_MODE:
+        if key == 'r':
+            info_text.text = "Tryb ręczny (Shift = ruch odwrotny)"
+            STATE = AppState.ROTATE
+        elif key == 'g':
+            info_text.text = "Tryb instrukcji:\nKrok 1: Układanie białego krzyża"
+            STATE = AppState.GUIDE
+
+
+    elif STATE == AppState.ROTATE:
+        if key in MOVE_AXIS_LAYER:
+            axis, layer = MOVE_AXIS_LAYER[key]
+            angle = 90 if held_keys['shift'] else -90
+            rotate(axis,layer, angle)
 
 
 
 
-    elif STATE == 'INPUT_COLORS':
-        if key in counts:
-            if key == 'w' and counts['w'] < 9:
-                all_tiles[tiles_index-1].color = color.white
-                counts['w']+=1
-                next()
-            elif key == 'y' and counts['y'] < 9:
-                all_tiles[tiles_index - 1].color = color.yellow
-                counts['y']+=1
-                next()
-            elif key == 'b' and counts['b'] < 9:
-                all_tiles[tiles_index - 1].color = color.blue
-                counts['b']+=1
-                next()
-            elif key == 'g' and counts['g'] < 9:
-                all_tiles[tiles_index - 1].color = color.green
-                counts['g']+=1
-                next()
-            elif key == 'r' and counts['r'] < 9:
-                all_tiles[tiles_index - 1].color = color.red
-                counts['r']+=1
-                next()
-            elif key == 'o' and counts['o'] < 9:
-                all_tiles[tiles_index - 1].color = color.orange
-                counts['o']+=1
-                next()
+    elif STATE == AppState.INPUT_COLORS:
+        if key in counts and counts[key] < 9:
+            current_face = face_order[(tiles_index - 1) // 9]
+            current_slot = (tiles_index - 1) % 9
+            all_tiles[tiles_index-1].color = CHAR_TO_COLOR[key]
+            cube_state[current_face][current_slot] = key
+            counts[key] +=1
+            next_tile()
 
-        elif key == 'l':
-            if tiles_index > 1:
-                tiles_index-=1
-                match all_tiles[tiles_index-1].color:
-                    case color.white: counts['w'] -= 1
-                    case color.yellow: counts['y'] -= 1
-                    case color.blue: counts['b'] -= 1
-                    case color.green: counts['g'] -= 1
-                    case color.red: counts['r'] -= 1
-                    case color.orange: counts['o'] -= 1
-                all_tiles[tiles_index].color = color.white
-                all_tiles[tiles_index-1].color = color.cyan
+        elif key == 'l' and tiles_index > 1:
+            tiles_index-=1
+            current_face = face_order[(tiles_index - 1) // 9]
+            current_slot = (tiles_index - 1) % 9
+            prev_char = cube_state[current_face][current_slot]
+            if prev_char in counts: counts[prev_char]-=1
+            cube_state[current_face][current_slot] = None
+            all_tiles[tiles_index].color = color.white
+            all_tiles[tiles_index-1].color = color.cyan
 
 
 
