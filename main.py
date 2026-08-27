@@ -1,5 +1,5 @@
 from ursina import *
-from dicts import COLOR_TO_CHAR, CHAR_TO_COLOR, cube_state, EDGES, layers, face_order, counts, info_text, MOVE_AXIS_LAYER, CAMERA_ROTATIONS, STICKER_CONFIG, STICKER_CONFIG_2
+from dicts import COLOR_TO_CHAR, CHAR_TO_COLOR, cube_state, layers, face_order, counts, info_text, MOVE_AXIS_LAYER, CAMERA_ROTATIONS, STICKER_CONFIG, STICKER_CONFIG_2, CENTER_COLORS
 from enums import AppState
 from solver import find_white_edges
 
@@ -24,17 +24,18 @@ for x in -1,0,1:
 
             for cond, face, pos, rot, col in STICKER_CONFIG: #STICKER_CONFIG_2
                 if cond(x,y,z):
-                    c = Entity(parent=cubie, model='quad', color=col, position=pos, rotation=rot, scale=0.88)
+                    c = Entity(parent=cubie, model='quad', color=col(x,y,z), position=pos, rotation=rot, scale=0.88)
+                    # c = Entity(parent=cubie, model='quad', color=col, position=pos, rotation=rot, scale=0.88) #STICKER_CONFIG_2
                     layers[face].append(c)
 
-layers['F'].sort(key=lambda t: (-t.parent.y, -t.parent.x))
-layers['B'].sort(key=lambda t: (-t.parent.y, t.parent.x))
+layers['F'].sort(key=lambda t: (-t.parent.y, t.parent.x))
+layers['B'].sort(key=lambda t: (-t.parent.y, -t.parent.x))
 
 layers['L'].sort(key=lambda t: (-t.parent.y, -t.parent.z))
 layers['R'].sort(key=lambda t: (-t.parent.y, t.parent.z))
 
-layers['U'].sort(key=lambda t: (-t.parent.z, -t.parent.x))
-layers['D'].sort(key=lambda t: (t.parent.z, -t.parent.x))
+layers['U'].sort(key=lambda t: (t.parent.y, t.parent.x))
+layers['D'].sort(key=lambda t: (t.parent.y, -t.parent.x))
 
 STATE = AppState.INPUT_COLORS #ROTATE
 all_tiles = []
@@ -43,12 +44,21 @@ if STATE == AppState.INPUT_COLORS:
     for face in face_order:
         all_tiles.extend(layers[face])
     all_tiles[0].color = color.cyan
+print(layers.keys())
+for face in face_order:
+    center_tile = layers[face][4]
+    center_color_char = CENTER_COLORS[face]
+    center_tile.color = CHAR_TO_COLOR[center_color_char]
+    cube_state[face][4] = center_color_char
 
 
 is_rotating = False
 def rotate(axis, layer, angle):
+    global is_rotating
     if is_rotating:
         return
+
+    is_rotating = True
 
     pivot.rotation = (0, 0, 0)
     pivot.position = (0, 0, 0)
@@ -79,6 +89,9 @@ def finish_rotation():
 
 def next_tile():
     global STATE, tiles_index
+    if tiles_index < len(all_tiles) and (tiles_index%9==4):
+        tiles_index+=1
+
     if tiles_index % 9 == 0:
         face_index = tiles_index // 9
         if face_index in CAMERA_ROTATIONS:
@@ -103,6 +116,8 @@ def input(key):
         elif key == 'g':
             info_text.text = "Tryb instrukcji:\nKrok 1: Układanie białego krzyża"
             STATE = AppState.GUIDE
+            print(find_white_edges())
+            STATE = AppState.ROTATE
 
 
     elif STATE == AppState.ROTATE:
@@ -115,22 +130,25 @@ def input(key):
 
 
     elif STATE == AppState.INPUT_COLORS:
-        if key in counts and counts[key] < 9:
+        if key in counts and counts[key] < 8:
             current_face = face_order[(tiles_index - 1) // 9]
             current_slot = (tiles_index - 1) % 9
             all_tiles[tiles_index-1].color = CHAR_TO_COLOR[key]
             cube_state[current_face][current_slot] = key
             counts[key] +=1
+            print(cube_state)
             next_tile()
 
         elif key == 'l' and tiles_index > 1:
+            all_tiles[tiles_index-1].color = color.gray
             tiles_index-=1
+            if (tiles_index-1)%9==4:
+                tiles_index-=1
             current_face = face_order[(tiles_index - 1) // 9]
             current_slot = (tiles_index - 1) % 9
             prev_char = cube_state[current_face][current_slot]
             if prev_char in counts: counts[prev_char]-=1
             cube_state[current_face][current_slot] = None
-            all_tiles[tiles_index].color = color.white
             all_tiles[tiles_index-1].color = color.cyan
 
 
