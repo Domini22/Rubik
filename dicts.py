@@ -20,34 +20,34 @@ CHAR_TO_COLOR = {
 
 STICKER_CONFIG = [
     (lambda x, y, z: y ==  1, 'U', (0,  0.501, 0), (90, 0, 0),
-     lambda x, y, z: color.yellow if (x == 0 and z == 0) else color.gray),
-    (lambda x, y, z: y == -1, 'D', (0, -0.501, 0), (270, 0, 0),
      lambda x, y, z: color.white if (x == 0 and z == 0) else color.gray),
+    (lambda x, y, z: y == -1, 'D', (0, -0.501, 0), (270, 0, 0),
+     lambda x, y, z: color.yellow if (x == 0 and z == 0) else color.gray),
     (lambda x, y, z: x ==  1, 'R', (0.501, 0, 0), (0, 270, 0),
-     lambda x, y, z: color.orange if (y == 0 and z == 0) else color.gray),
-    (lambda x, y, z: x == -1, 'L', (-0.501, 0, 0), (0, 90, 0),
      lambda x, y, z: color.red if (y == 0 and z == 0) else color.gray),
+    (lambda x, y, z: x == -1, 'L', (-0.501, 0, 0), (0, 90, 0),
+     lambda x, y, z: color.orange if (y == 0 and z == 0) else color.gray),
     (lambda x, y, z: z ==  1, 'B', (0, 0, 0.501), (0, 180, 0),
      lambda x, y, z: color.blue if (x == 0 and y == 0) else color.gray),
     (lambda x, y, z: z == -1, 'F', (0, 0, -0.501), (0, 0, 0),
      lambda x, y, z: color.green if (x == 0 and y == 0) else color.gray),
 ]
 STICKER_CONFIG_2 = [
-    (lambda x, y, z: y ==  1, 'U', (0,  0.501, 0), (90, 0, 0), color.yellow),
-    (lambda x, y, z: y == -1, 'D', (0, -0.501, 0), (270, 0, 0), color.white),
-    (lambda x, y, z: x ==  1, 'R', (0.501, 0, 0), (0, 270, 0), color.orange),
-    (lambda x, y, z: x == -1, 'L', (-0.501, 0, 0), (0, 90, 0), color.red),
+    (lambda x, y, z: y ==  1, 'U', (0,  0.501, 0), (90, 0, 0), color.white),
+    (lambda x, y, z: y == -1, 'D', (0, -0.501, 0), (270, 0, 0), color.yellow),
+    (lambda x, y, z: x ==  1, 'R', (0.501, 0, 0), (0, 270, 0), color.red),
+    (lambda x, y, z: x == -1, 'L', (-0.501, 0, 0), (0, 90, 0), color.orange),
     (lambda x, y, z: z ==  1, 'B', (0, 0, 0.501), (0, 180, 0), color.blue),
     (lambda x, y, z: z == -1, 'F', (0, 0, -0.501), (0, 0, 0), color.green),
 ]
 
 cube_state = {
-    'U': ['y'] * 9,
-    'D': ['w'] * 9,
+    'U': ['w'] * 9,
+    'D': ['y'] * 9,
     'F': ['g'] * 9,
     'B': ['b'] * 9,
-    'R': ['o'] * 9,
-    'L': ['r'] * 9,
+    'R': ['r'] * 9,
+    'L': ['o'] * 9,
 }
 
 EDGES = [
@@ -85,12 +85,12 @@ CORNERS = [
 ]
 
 CENTER_COLORS = {
-    'U': 'y',  # Góra - Żółty
-    'D': 'w',  # Dół - Biały
+    'U': 'w',  # Góra - Biały
+    'D': 'y',  # Dół - Żółty
     'F': 'g',  # Przód - Zielony
     'B': 'b',  # Tył - Niebieski
-    'L': 'r',  # Lewo - Czerwony
-    'R': 'o'   # Prawo - Pomarańczowy
+    'R': 'r',   # Prawo - Czerwony
+    'L': 'o',  # Lewo - Pomarańczowy
 }
 
 layers={'U': [], 'D':[], 'R': [], 'L': [], 'F': [], 'B': []}
